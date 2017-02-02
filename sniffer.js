@@ -5,6 +5,8 @@ var UA = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Ge
 var MAX_THREAD = 1;
 var RES_TIMEOUT= 10000;
 var PAGE_TIMEOUT = 3000;
+
+
 function FileProcessor(inputFile, outputFile){
 		this.inputFile = inputFile;
 		this.outputFile = outputFile;
@@ -54,17 +56,42 @@ function composeText(text,callback){
 }
 
 function scanTasks(list){
-	var result = [];
 	var failWebsite = [];
 	var result = { "failWebsite" : [],
-	               "failResource" : {}
-	             }
+	           "failResource" : {}
+	         };
 
-	scanPage(list,result);
+	function printOutFailResult(result){
+		console.log("---ui");
+		console.log(result);
+		for (var key in result){
+			if(key === "failWebsite"){
+				console.log("=========website connection fail==============")
+			    result[key].forEach(function(element){
+			    	console.log("-----url:  "+ element);
+			    });
+			    console.log("\n\n");
+			}
+
+			if(key === "failResource"){
+				console.log("======Fail to get the following resource=========");
+				for(var subkey in result[key]){
+					console.log("=======Resource request from this website: "+ subkey +" ============")
+					result[key][subkey].forEach(function(element){
+						console.log("--------url: "+ element);
+					});
+					console.log("============ end ======================\n\n");
+				}
+			}
+		}
+	}
+
+	scanPage(list,result,printOutFailResult);
 }
 
-function scanPage(list,result){
+function scanPage(list,result,callback){
      if(list.length<=0){
+     	callback(result);
      	exit();
      }
 
@@ -74,12 +101,14 @@ function scanPage(list,result){
 	 page.settings.resourceTimeout = RES_TIMEOUT;
 
 	 page.onResourceError = function(error){
-	 	// console.log("Unable to load resouce: "+ error.url);
-	 	// console.log("error String:" + error.errorString);
-	 	// console.log("error Code:" + error.errorCode);
-	 	if(result["failResource"][url]){
-	 		result["failResource"][url]["fail"]
+	 	console.log("Unable to load resouce: "+ error.url);
+	 	console.log("error String:" + error.errorString);
+	    console.log("error Code:" + error.errorCode);
+	 	if(!result["failResource"][url]){
+	 		result["failResource"][url] = []
 	 	}
+
+	 	result["failResource"][url].push(error.url);
 	 };
 
 	 page.onResourceReceived = function(response){
@@ -89,11 +118,10 @@ function scanPage(list,result){
 
 	 function done(){
 	 	clearTimeout(tid);
-	 	console.log("clear time");
 	 	console.log("================= Get resource Done =============");
 	 	page.close();
 	 	console.log("================= Page Close ====================\n\n")
-	 	scanPage(list,result);
+	 	scanPage(list,result,callback);
 	 };
 
 	 console.log("================= Open website:   " + url + "=============");
