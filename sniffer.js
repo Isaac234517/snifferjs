@@ -174,9 +174,12 @@ function scanPage(list,result,callback){
 	 	clearTimeout(tid);
 	 	console.log("================= Get resource Done =============");
 	 	if(result["success"][url]){
-	 		var resourceURL = result["success"][url];
+	 		result["success"][url].sort(function(x,y){
+	 			return y["stableDay"] - x["stableDay"];
+	 		})
+	 		var resourceURLs = result["success"][url];
 	 		console.log("-----stable day   -----cached day   -----url\n");
-	 		resourceURL.forEach(function(info){
+	 		resourceURLs.forEach(function(info){
 	 			console.log("-----   "+info["stableDay"]+ "              "+info["cachedDay"]+"        "+ info["resourceURL"] +"  \n\n");
 	 		});
 	 	}
