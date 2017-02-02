@@ -38,6 +38,10 @@ function exit(){
 	phantom.exit();
 }
 
+function utcTimeToDay(day){
+	return Math.round(day/(24*3600*1000));
+}
+
 function composeText(text,callback){
 	
 	var list = text.split('\n').filter(function(item){
@@ -58,14 +62,13 @@ function composeText(text,callback){
 function scanTasks(list){
 	var failWebsite = [];
 	var result = { "failWebsite" : [],
-	           "failResource" : {}
+	           "failResource" : {},
+	           "success":{}
 	         };
 
 	function printOutFailResult(result){
-		console.log("---ui");
-		console.log(result);
 		for (var key in result){
-			if(key === "failWebsite"){
+			if(key === "failWebsite" && result[key].length > 0 ){
 				console.log("=========website connection fail==============")
 			    result[key].forEach(function(element){
 			    	console.log("-----url:  "+ element);
@@ -73,7 +76,7 @@ function scanTasks(list){
 			    console.log("\n\n");
 			}
 
-			if(key === "failResource"){
+			if(key === "failResource" && result[key].keys){
 				console.log("======Fail to get the following resource=========");
 				for(var subkey in result[key]){
 					console.log("=======Resource request from this website: "+ subkey +" ============")
@@ -113,14 +116,73 @@ function scanPage(list,result,callback){
 
 	 page.onResourceReceived = function(response){
 	 	var responseURL = response.url;
-		console.log("resource " + responseURL);
+	 	if(!/^http/i.test(responseURL)){
+	 		return;
+	 	}
+
+	 	if(/\.js($|\W)/i.test(responseURL) ==false){
+	 		return;
+	 	}
+
+		var now, lastModify, expired, etag,cacheControl;
+		response.headers.forEach(function(header){
+			switch(header.name.toLowerCase()){
+				case  'last-modified':
+				  lastModify = header.value;
+				  break;
+				case 'expires':
+				  expires = header.value;
+				  break;
+				case 'etag':
+				   etag = header.value;
+				   break;
+				case 'cache-control':
+				   var arr = header.value.split(",");
+				   var index;
+				   arr.forEach(function(item,i){
+				   	 if(/^max-age/i.test(item.trim()) === true){
+				   	 	index = i;
+				   	 	return;
+				   	 }
+				   });
+				   if(index !== undefined){
+				   	 cacheControl = arr[index].split("=")[1];
+				   }
+				   break;
+			}
+		});
+	    if(!lastModify || !expires || !cacheControl || !cacheControl < 0){
+	    	return;
+	    }
+
+	    lastModify = new Date(lastModify).getTime();
+	    expires = new Date(expires).getTime();
+	    
+
+	    now = Date.now();
+	    var stableDay = utcTimeToDay(now - lastModify);
+	    var cachedDay = utcTimeToDay(expires - now);
+	    if(!result["success"][url]){
+	    	result["success"][url] = []
+	    }
+	    result["success"][url].push({"stableDay" : stableDay,
+	                                           "cachedDay" : cachedDay,
+	                                           "resourceURL": responseURL.split("//")[1]});
 	 };
 
 	 function done(){
 	 	clearTimeout(tid);
 	 	console.log("================= Get resource Done =============");
+	 	if(result["success"][url]){
+	 		var resourceURL = result["success"][url];
+	 		console.log("-----stable day   -----cached day   -----url\n");
+	 		resourceURL.forEach(function(info){
+	 			console.log("-----   "+info["stableDay"]+ "              "+info["cachedDay"]+"        "+ info["resourceURL"] +"  \n\n");
+	 		});
+	 	}
+
 	 	page.close();
-	 	console.log("================= Page Close ====================\n\n")
+	 	console.log("================= Page Close ====================\n\n");
 	 	scanPage(list,result,callback);
 	 };
 
