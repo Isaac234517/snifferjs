@@ -76,7 +76,7 @@ function scanTasks(list){
 			    console.log("\n\n");
 			}
 
-			if(key === "failResource" && result[key].keys){
+			if(key === "failResource" && Object.keys(result[key])){
 				console.log("======Fail to get the following resource=========");
 				for(var subkey in result[key]){
 					console.log("=======Resource request from this website: "+ subkey +" ============")
@@ -87,6 +87,7 @@ function scanTasks(list){
 				}
 			}
 		}
+		
 	}
 
 	scanPage(list,result,printOutFailResult);
@@ -172,7 +173,6 @@ function scanPage(list,result,callback){
 
 	 function done(){
 	 	clearTimeout(tid);
-	 	console.log("================= Get resource Done =============");
 	 	if(result["success"][url]){
 	 		result["success"][url].sort(function(x,y){
 	 			return y["stableDay"] - x["stableDay"];
@@ -190,7 +190,6 @@ function scanPage(list,result,callback){
 	 };
 
 	 console.log("================= Open website:   " + url + "=============");
-	 console.log("================= start get web site resource =============");
 	 page.open(url,function(status){
 	 	if(status === 'fail' ){
 	 		result["failWebsite"].push(url);
