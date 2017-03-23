@@ -21,7 +21,21 @@ function FileProcessor(inputFile, outputFile){
 				console.log(e);
 				return;
 			}
-	}
+	};
+
+		this.saveFile = function(result){
+			try{
+				var text = JSON.stringify(result);
+				this.fs.write(this.outputFile, text);
+				console.log("Save File " +this.outputFile+ " Successfully\n");
+			}
+			catch(e){
+				console.log(e.message);
+				console.log("Can not save ouput as json file\n");
+				console.log(this.outputFile);
+				console.log("Error message end\n");
+			}
+		};
 }
 
 function guidline(){
@@ -59,7 +73,7 @@ function composeText(text,callback){
 	return callback(list);
 }
 
-function scanTasks(list){
+function scanTasks(list,fp){
 	var failWebsite = [];
 	var result = { "failWebsite" : [],
 	           "failResource" : {},
@@ -88,6 +102,16 @@ function scanTasks(list){
 			}
 		}
 		
+		if(fp.outputFile === undefined){
+			console.log("You did not give output file name\n");
+			console.log("No file save");
+		}
+		else if (Object.keys(result["success"]).length ==0 ){
+			console.log("No result, nothing worth to save");
+		}
+		else{
+			fp.saveFile(result["success"]);
+		}
 	}
 
 	scanPage(list,result,printOutFailResult);
@@ -229,9 +253,8 @@ function main (args){
 				return item.trim();
 			});
 		}).reverse();
-		for(var i =0; i<MAX_THREAD; i++){
-			setTimeout(scanTasks(list),i*1000)
-		}
+	    scanTasks(list,fp);
+
 	}
 }
 
