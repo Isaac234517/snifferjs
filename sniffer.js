@@ -2,7 +2,6 @@
 var system = require('system');
 var webpage = require('webpage');
 var UA = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36';
-var MAX_THREAD = 1;
 var RES_TIMEOUT= 10000;
 var PAGE_TIMEOUT = 3000;
 
