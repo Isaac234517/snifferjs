@@ -124,6 +124,7 @@ function scanPage(list,result,callback){
 
    	 var url = list.pop();
 	 var page = webpage.create();
+	 var captureAlready = {};
 	 page.settings.userAgent = UA;
 	 page.settings.resourceTimeout = RES_TIMEOUT;
 
@@ -148,7 +149,13 @@ function scanPage(list,result,callback){
 	 		return;
 	 	}
 
-		var now, lastModify, expired, etag,cacheControl;
+	 	if(captureAlready.hasOwnProperty(responseURL)){
+	 		return;
+	 	}
+
+	 	captureAlready[responseURL] = true;
+
+		var now, lastModify, expired;
 		response.headers.forEach(function(header){
 			switch(header.name.toLowerCase()){
 				case  'last-modified':
@@ -157,25 +164,9 @@ function scanPage(list,result,callback){
 				case 'expires':
 				  expires = header.value;
 				  break;
-				case 'etag':
-				   etag = header.value;
-				   break;
-				case 'cache-control':
-				   var arr = header.value.split(",");
-				   var index;
-				   arr.forEach(function(item,i){
-				   	 if(/^max-age/i.test(item.trim()) === true){
-				   	 	index = i;
-				   	 	return;
-				   	 }
-				   });
-				   if(index !== undefined){
-				   	 cacheControl = arr[index].split("=")[1];
-				   }
-				   break;
 			}
 		});
-	    if(!lastModify || !expires || !cacheControl || !cacheControl < 0){
+	    if(!lastModify || !expires){
 	    	return;
 	    }
 
@@ -186,6 +177,11 @@ function scanPage(list,result,callback){
 	    now = Date.now();
 	    var stableDay = utcTimeToDay(now - lastModify);
 	    var cachedDay = utcTimeToDay(expires - now);
+
+	    if(cachedDay <=0){
+	    	return ;
+	    }
+
 	    if(!result["success"][url]){
 	    	result["success"][url] = []
 	    }
@@ -197,9 +193,11 @@ function scanPage(list,result,callback){
 	 function done(){
 	 	clearTimeout(tid);
 	 	if(result["success"][url]){
-	 		result["success"][url].sort(function(x,y){
-	 			return y["stableDay"] - x["stableDay"];
-	 		})
+	 		 result["success"][url].sort(function(x,y){
+	 		 	 var temp2 = y["cachedDay"] -x["cachedDay"];
+	 		 	 var temp1 = x["stableDay"] - y["stableDay"];
+	 		 	 return temp2 || temp1
+	 		 });
 	 		var resourceURLs = result["success"][url];
 	 		console.log("-----stable day   -----cached day   -----url\n");
 	 		resourceURLs.forEach(function(info){
